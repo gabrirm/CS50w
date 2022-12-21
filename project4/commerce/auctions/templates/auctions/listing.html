@@ -1,0 +1,77 @@
+{% extends "auctions/layout.html" %}
+
+{% block body %}
+    <div class="container">
+        {% if update %}
+            <div class="alert alert-secondary" role="alert">
+            {{ message }}
+            </div>
+        {% else %}
+        <div class="alert alert-secondary" role="alert">
+            {{ message }}
+          </div>
+        {% endif %}
+    </div>
+    
+    <div class="row mx-3">
+        {% if user.is_authenticated %}
+            {% if isListinginWatchlist %}
+                <form action="{% url 'removeWatchlist' id=listing.id %}" method="POST">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger" >Remove from Watchlist</button>
+                </form>
+            {% else %}
+            <form action="{% url 'addtoWatchlist' id=listing.id %}" method="POST">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success">Add to  Watchlist</button>
+            </form>
+                
+            {% endif %}
+        {% endif %}
+    </div>
+
+    <h2>Nombre: {{ listing.title }}</h2>
+    <img src="{{ listing.imageUrl }}" alt="{{ listing.title }}" height="500px">
+    <p>
+        {{ listing.description }}
+    </p>
+    <p>Owner: {{ listing.owner }}</p>
+    <h5>Price: ${{ listing.price.bid }}</h5>
+    {% if user.is_authenticated %}
+        <form action="{% url 'addBid' id=listing.id %}" method="POST">
+            {% csrf_token %}    
+            <div class="form-group">
+                <label for="Bids">Enter New Bid</label>
+                <input type="number" min="0" class="form-control" name="newBid">
+                <br>
+                <button type="submit" class="btn btn-warning">Submit</button>
+            
+            </div>
+        </form> 
+    {% endif %}
+
+    <form action="{% url 'addComment' id=listing.id %}" method="POST">
+        {% csrf_token %}    
+        <div class="form-group">
+            <label for="Comments">Enter New Comment</label>
+            <input type="text" class="form-control" name="newComment">
+            <br>
+            <button type="submit" class="btn btn-warning">Submit</button>
+            
+        </div>
+    </form>
+    <br>
+    <h4>Comment Section</h4>
+    <div>
+    {% for comment in comments %}
+        <ul class="list-group">
+            <li class="list-group-item">{{ comment.message }}</li>
+            
+            <h6>Posted by <strong>{{ comment.author }}</strong></h6>
+    
+        </ul>
+    {% endfor %}
+    </div>  
+
+    
+{% endblock %}

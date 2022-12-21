@@ -1,0 +1,134 @@
+{% extends "network/layout.html" %}
+{% load static %}
+
+
+{% block body %}
+
+    <script>
+      function getCookie(name){
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length == 2) return parts.pop().split(";").shift();
+      };
+      function submitHandler(id){
+        const textarea_value = document.getElementById(`textarea-${id}`).value;
+        const content = document.getElementById(`content_${id}`);
+        const modal = document.getElementById(`modal-${id}`);
+        fetch(`/edit/${id}`, {
+          method: "POST",
+          headers: {"Content-type": "application/json", "X-CSRFToken": getCookie("csrftoken")},
+          body: JSON.stringify({
+            content: textarea_value
+          })
+        })
+        .then(response => response.json())
+        .then(result => {
+          content.innerHTML = result.data;
+          modal.classList.remove('show');
+          modal.setAttribute('aria-hidden', 'true');
+          modal.setAttribute('style', 'display: none');
+          // get modal backdrops
+          const modalsBackdrops = document.getElementsByClassName('modal-backdrop');
+          for(let i=0; i<modalsBackdrops.length; i++){
+            document.body.removeChild(modalsBackdrops[i]);
+          }
+        })
+      };
+      function like_handler(id, who_you_liked){
+        if(who_you_liked.indexOf(id) >= 0){
+          var liked = true;
+        }
+        else {
+          var liked = false;
+        }
+        if(liked === true){
+          fetch(`/remove_like/${id}`)
+          .then(response => response.json())
+          .then(result => {
+            console.log(result.message);
+          })
+        } else {
+          fetch(`/add_like/${id}`)
+          .then(response => response.json())
+          .then(result => {
+            console.log(result.message);
+          })
+        }
+      };
+      
+      
+    </script>
+    {% if user.is_authenticated %}
+    <div id="new_post">
+        <h2>New Post</h2>
+        <form action="{% url 'new_post' %}" method="POST" class="new_post">
+            {% csrf_token %}
+            <textarea name="content" rows="4" cols="100"></textarea>
+            <br/>
+            <input type="submit" value="Post" class="btn btn-primary">
+        </form>
+    </div>
+
+    {% endif %}
+    <div id="all_posts" >
+        {% for post in posts_of_the_page %}
+            <div id="row_post">
+               <h5 class="username"><a href="{% url 'profile' user_id=post.user.id %}">@{{ post.user }}</a></h5> 
+               <h6 class="content" id="content_{{ post.id }}">{{ post.content }}</h6>
+                <p class="date">{{ post.date }}</p>
+                {% if user.is_authenticated %}
+                    {% if user == post.user %}
+                      <div class="d-flex">
+                        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modal-{{ post.id }}">
+                            Edit
+                        </button>
+                      </div>
+                      
+                      <!-- Modal -->
+                      <div class="modal fade" id="modal-{{ post.id }}" tabindex="-1" role="dialog" aria-labelledby="modal-{{ post.id }}-label" aria-hidden="true">
+                        <div class="modal-dialog" role="document">
+                          <div class="modal-content">
+                            <div class="modal-header">
+                              <h5 class="modal-title" id="modal-{{ post.id }}">{{ post.user }}</h5>
+                              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                              </button>
+                            </div>
+                            <div class="modal-body">
+                              <textarea id="textarea-{{ post.id }}" rows="5" class="form-control" name="content">{{ post.content }}</textarea>
+                            </div>
+                            <div class="modal-footer">
+                              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                              <button type="button" class="btn btn-primary" onclick="submitHandler({{ post.id }})">Save changes</button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    {% else %}
+                      {% if post.id in who_you_liked %}
+                        <button class="btn btn-info fa fa-thumbs-down col-1" id="{{ post.id }}" onclick="like_handler({{ post.id }}, {{ who_you_liked }})"></button>
+                      {% else %}
+                        <button class="btn btn-info fa fa-thumbs-up col-1" id="{{ post.id }}" onclick="like_handler({{ post.id }}, {{ who_you_liked }})"></button>
+
+                      {% endif %}
+                      
+                    
+                    {% endif %}
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+    <nav aria-label="Page navigation example">
+        <ul class="pagination d-flex justify-content-center">
+            {% if posts_of_the_page.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ posts_of_the_page.previous_page_number }}">Previous</a></li>
+            {% endif %}
+          
+            {% if posts_of_the_page.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ posts_of_the_page.next_page_number }}">Next</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+    
+    
+{% endblock %}
